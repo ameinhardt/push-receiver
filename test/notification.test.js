@@ -17,10 +17,9 @@ const NOTIFICATIONS = {
 
   client = new Client({
     senderId: SENDER_ID,
-    logLevel: 'DEBUG',
     persistentIds: [],
     heartbeatIntervalMs: 10_000
-  });
+  }, console);
 
 async function send(message) {
   const { data } = await axios.post(FCM_SEND_API, {
@@ -71,7 +70,6 @@ describe('Parser', function() {
   });
 
   afterAll(() => {
-    client.setLogLevel('NONE');
     client.destroy();
   });
 });

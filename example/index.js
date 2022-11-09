@@ -11,7 +11,6 @@ dotenv.config({
 });
 
 const SENDER_ID = process.env.SENDER_ID,
-  LOG_LEVEL = process.env.LOG_LEVEL || 'DEBUG',
   SERVER_KEY = process.env.SERVER_KEY,
   CREDENTIALFILE = path.join(path.dirname(url.fileURLToPath(import.meta.url)), './credentials.json'),
   PERSISTENTIDSFILE = path.join(path.dirname(url.fileURLToPath(import.meta.url)), './persistentIds.json');
@@ -48,10 +47,13 @@ const main = async () => {
   const instance = new PushReceiver({
     bundleId: 'com.bosch.riot.applauth',
     credentials,
-    logLevel: LOG_LEVEL,
     senderId: SENDER_ID,
     heartbeatIntervalMs: 5 * 60 * 1000, // 5 min
     persistentIds
+  }, {
+    // info: console.info,
+    warn: console.warn,
+    error: console.error
   });
 
   instance.on('ON_MESSAGE_RECEIVED', onMessageReceived);

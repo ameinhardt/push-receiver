@@ -11,7 +11,6 @@ import * as Protos from './protos.js';
 import type { mcs_proto } from './protos.js';
 import type * as Types from './types.js';
 import decrypt from './utils/decrypt.js';
-import Logger from './utils/logger.js';
 
 ProtobufJS.util.Long = Long;
 ProtobufJS.configure();
@@ -23,6 +22,7 @@ const HOST = 'mtalk.google.com',
 export default class PushReceiver extends EventEmitter {
   private config: Types.ClientConfig;
   private socket: tls.TLSSocket;
+  private logger: Console;
   private retryCount = 0;
   private retryTimeout: NodeJS.Timeout;
   private parser: Parser;
@@ -33,7 +33,7 @@ export default class PushReceiver extends EventEmitter {
 
   public persistentIds: Types.PersistentId[];
 
-  constructor(config: Types.ClientConfig) {
+  constructor(config: Types.ClientConfig, logger? : Console) {
     super();
     this.config = {
       vapidKey: 'BDOU99-h67HcA6JeFXHbSNMu7e2yNNu3RzoMj8TM4W88jITfq7ZmPvIM1Iv-4_l2LxQcYwhqby2xGpWwzjfAnG4', // This is default Firebase VAPID key
@@ -41,6 +41,7 @@ export default class PushReceiver extends EventEmitter {
       heartbeatIntervalMs: 5 * 60 * 1000, // 5 min
       ...config
     };
+    this.logger = logger;
 
     this.persistentIds = this.config.persistentIds;
   }
@@ -72,7 +73,7 @@ export default class PushReceiver extends EventEmitter {
   public emit(event: 'ON_READY'): boolean
   public emit(event: 'ON_HEARTBEAT'): boolean
   public emit(event: unknown, ...arguments_: unknown[]): boolean {
-    Logger.debug(event, ...arguments_);
+    this.logger?.info?.(event, ...arguments_);
     return Reflect.apply(EventEmitter.prototype.emit, this, [event, ...arguments_]);
   }
 
@@ -92,7 +93,7 @@ export default class PushReceiver extends EventEmitter {
 
     this.lastStreamIdReported = -1;
 
-    Logger.debug('creating tls socket');
+    this.logger?.info?.('creating tls socket');
     this.socket = new tls.TLSSocket(null);
     this.socket.setKeepAlive(true);
     this.socket.on('connect', this.handleSocketConnect);
@@ -129,12 +130,12 @@ export default class PushReceiver extends EventEmitter {
   };
 
   public async register(): Promise<Types.Credentials> {
-    const subscription = await registerGCM(this.config);
-    return registerFCM(subscription, this.config);
+    const subscription = await registerGCM(this.config, this.logger);
+    return registerFCM(subscription, this.config.senderId, this.logger);
   }
 
   public checkIn(): Promise<Types.GcmData> {
-    return checkIn(this.config.credentials?.gcm);
+    return checkIn(this.config.credentials?.gcm, this.logger);
   }
 
   private clearHeartbeat() {
@@ -227,7 +228,7 @@ export default class PushReceiver extends EventEmitter {
 
     const buffer = HeartbeatAckRequestType.encodeDelimited(heartbeatAckRequest).finish();
 
-    Logger.debug('sending heartbeat pong');
+    this.logger?.info?.('sending heartbeat pong');
     this.socket.write(Buffer.concat([
       Buffer.from([MCSProtoTag.kHeartbeatAckTag]),
       buffer
@@ -270,7 +271,7 @@ export default class PushReceiver extends EventEmitter {
 
     const buffer = LoginRequestType.encodeDelimited(loginRequest).finish();
 
-    Logger.debug('sending login request', loginRequest);
+    this.logger?.info?.('sending login request', loginRequest);
     this.socket.write(Buffer.concat([
       Buffer.from([Variables.kMCSVersion, MCSProtoTag.kLoginRequestTag]),
       buffer
@@ -283,7 +284,7 @@ export default class PushReceiver extends EventEmitter {
 
     switch (tag) {
       case MCSProtoTag.kLoginResponseTag: {
-        Logger.debug('received login response', object);
+        this.logger?.info?.('received login response', object);
         // clear persistent ids, as we just sent them to the server while logging in
         this.config.persistentIds = [];
         this.emit('ON_READY');
@@ -292,13 +293,13 @@ export default class PushReceiver extends EventEmitter {
       }
 
       case MCSProtoTag.kDataMessageStanzaTag: {
-        Logger.debug('received message', object);
+        this.logger?.info?.('received message', object);
         this.handleDataMessage(object);
         break;
       }
 
       case MCSProtoTag.kHeartbeatPingTag: {
-        Logger.debug('received heartbeat ping', object);
+        this.logger?.info?.('received heartbeat ping', object);
         this.emit('ON_HEARTBEAT');
 
         this.sendHeartbeatPong(object);
@@ -306,24 +307,24 @@ export default class PushReceiver extends EventEmitter {
       }
 
       case MCSProtoTag.kHeartbeatAckTag: {
-        Logger.debug('received heartbeat ack', object);
+        this.logger?.info?.('received heartbeat ack', object);
         this.emit('ON_HEARTBEAT');
         break;
       }
 
       case MCSProtoTag.kCloseTag: {
-        Logger.debug('received closing', object);
+        this.logger?.info?.('received closing', object);
         this.handleSocketClose(object);
         break;
       }
 
       case MCSProtoTag.kLoginRequestTag: {
-        Logger.debug('received login request', object);
+        this.logger?.info?.('received login request', object);
         break;
       }
 
       case MCSProtoTag.kIqStanzaTag: {
-        Logger.debug('received iq stanza', object);
+        this.logger?.info?.('received iq stanza', object);
         break;
       }
 
@@ -356,7 +357,7 @@ export default class PushReceiver extends EventEmitter {
           // all cases we've been able to receive future notifications using the
           // same keys. So, we silently drop this notification.
 
-          Logger.warn(`Message dropped as it could not be decrypted: ${error.message}`);
+          this.logger?.warn?.(`Message dropped as it could not be decrypted: ${error.message}`);
           return;
         }
         default: {
@@ -376,7 +377,7 @@ export default class PushReceiver extends EventEmitter {
   };
 
   private handleParserError = (error) => {
-    Logger.error(error);
+    this.logger?.error?.(error);
     this.socketRetry();
   };
 }

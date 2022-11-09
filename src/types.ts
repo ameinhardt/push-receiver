@@ -1,5 +1,3 @@
-import { LogLevels } from './constants.js';
-
 export interface Keys {
     privateKey: string
     publicKey: string
@@ -81,10 +79,6 @@ export interface ClientConfig {
     persistentIds?: PersistentId[]
     senderId: string
     bundleId: string
-    chromeId?: string
-    chromeVersion?: string
-    skipFcmRegistration?: boolean
-    logLevel?: keyof typeof LogLevels
     vapidKey?: string
     heartbeatIntervalMs?: number
 }

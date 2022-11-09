@@ -39,11 +39,7 @@ interface ClientConfig {
     credentials?: Credentials // Will be generated if missing - save this after first use!
     persistentIds?: PersistentId[] // Default - []
     senderId: string // Required
-    bundleId?: string // Default - 'receiver.push.com'
-    chromeId?: string
-    chromeVersion?: string
-    skipFcmRegistration?: boolean // Default - false
-    logLevel?: keyof typeof LogLevels // 'NONE'|'DEBUG'|'VERBOSE' - default: 'NONE'
+    bundleId: string // Required
     vapidKey?: string // Default - default firebase VAPID key
     heartbeatIntervalMs?: number // Default - 5 * 60 * 1000
 }

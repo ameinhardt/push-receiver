@@ -88,9 +88,3 @@ export enum GcmRequestStatus {
     // histogram enum accordingly.
     STATUS_COUNT
 }
-
-export enum LogLevels {
-    NONE = 0,
-    DEBUG,
-    VERBOSE
-}

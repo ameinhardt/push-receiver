@@ -7,7 +7,6 @@ import {
   MCSProtoTag
 } from './constants.js';
 import * as Protos from './protos.js';
-import Logger from './utils/logger.js';
 
 // Parser parses wire data from gcm.
 // This takes the role of WaitForData in the chromium connection handler.
@@ -21,6 +20,7 @@ import Logger from './utils/logger.js';
 // ref: https://cs.chromium.org/chromium/src/google_apis/gcm/engine/connection_handler_impl.cc?rcl=dc7c41bc0ee5fee0ed269495dde6b8c40df43e40&l=178
 export default class Parser extends EventEmitter {
   private socket: TLSSocket;
+  private logger: Console;
   private state: ProcessingState = ProcessingState.MCS_VERSION_TAG_AND_SIZE;
   private data: Buffer = Buffer.alloc(0);
   private messageTag = 0;
@@ -28,9 +28,9 @@ export default class Parser extends EventEmitter {
   private handshakeComplete = false;
   private isWaitingForData = true;
 
-  constructor(socket: TLSSocket) {
+  constructor(socket: TLSSocket, logger? : Console) {
     super();
-
+    this.logger = logger;
     this.socket = socket;
     this.socket.on('data', this.handleData);
   }
@@ -46,7 +46,7 @@ export default class Parser extends EventEmitter {
   }
 
   private handleData = (buffer) => {
-    Logger.verbose(`Got data: ${buffer.length}`);
+    this.logger?.debug?.(`Got data: ${buffer.length}`);
     this.data = Buffer.concat([this.data, buffer]);
     if (this.isWaitingForData) {
       this.isWaitingForData = false;
@@ -55,7 +55,7 @@ export default class Parser extends EventEmitter {
   };
 
   private waitForData() {
-    Logger.verbose(`waitForData state: ${this.state}`);
+    this.logger?.debug?.(`waitForData state: ${this.state}`);
 
     let minBytesNeeded = 0;
 
@@ -83,12 +83,12 @@ export default class Parser extends EventEmitter {
 
     if (this.data.length < minBytesNeeded) {
       // TODO(ibash) set a timeout and check for socket disconnect
-      Logger.verbose(`Socket read finished prematurely. Waiting for ${minBytesNeeded - this.data.length} more bytes`);
+      this.logger?.debug?.(`Socket read finished prematurely. Waiting for ${minBytesNeeded - this.data.length} more bytes`);
       this.isWaitingForData = true;
       return;
     }
 
-    Logger.verbose(`Processing MCS data: state == ${this.state}`);
+    this.logger?.debug?.(`Processing MCS data: state == ${this.state}`);
 
     switch (this.state) {
       case ProcessingState.MCS_VERSION_TAG_AND_SIZE: {
@@ -116,7 +116,7 @@ export default class Parser extends EventEmitter {
   private handleGotVersion() {
     const version = this.data.readInt8(0);
     this.data = this.data.slice(1);
-    Logger.verbose(`VERSION IS ${version}`);
+    this.logger?.debug?.(`VERSION IS ${version}`);
 
     if (version < Variables.kMCSVersion && version !== 38) {
       this.emitError(new Error(`Got wrong version: ${version}`));
@@ -130,7 +130,7 @@ export default class Parser extends EventEmitter {
   private handleGotMessageTag() {
     this.messageTag = this.data.readInt8(0);
     this.data = this.data.slice(1);
-    Logger.verbose(`RECEIVED PROTO OF TYPE ${this.messageTag}`);
+    this.logger?.debug?.(`RECEIVED PROTO OF TYPE ${this.messageTag}`);
 
     this.handleGotMessageSize();
   }
@@ -162,7 +162,7 @@ export default class Parser extends EventEmitter {
 
     this.data = this.data.slice(reader.pos);
 
-    Logger.verbose(`Proto size: ${this.messageSize}`);
+    this.logger?.debug?.(`Proto size: ${this.messageSize}`);
 
     if (this.messageSize > 0) {
       this.state = ProcessingState.MCS_PROTO_BYTES;
@@ -189,7 +189,7 @@ export default class Parser extends EventEmitter {
 
     if (this.data.length < this.messageSize) {
       // Continue reading data.
-      Logger.verbose(`Continuing data read. Buffer size is ${this.data.length}, expecting ${this.messageSize}`);
+      this.logger?.debug?.(`Continuing data read. Buffer size is ${this.data.length}, expecting ${this.messageSize}`);
       this.state = ProcessingState.MCS_PROTO_BYTES;
       this.waitForData();
       return;
@@ -210,10 +210,10 @@ export default class Parser extends EventEmitter {
 
     if (this.messageTag === MCSProtoTag.kLoginResponseTag) {
       if (this.handshakeComplete) {
-        Logger.error('Unexpected login response');
+        this.logger?.error?.('Unexpected login response');
       } else {
         this.handshakeComplete = true;
-        Logger.verbose('GCM Handshake complete.');
+        this.logger?.debug?.('GCM Handshake complete.');
       }
     }
 

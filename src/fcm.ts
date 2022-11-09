@@ -24,7 +24,7 @@ function createKeys(): Promise<Types.Keys> {
   });
 }
 
-export default async function registerFCM(gcm: Types.GcmData, config: Types.ClientConfig): Promise<Types.Credentials> {
+export default async function registerFCM(gcm: Types.GcmData, senderId: string, logger? : Console): Promise<Types.Credentials> {
   const keys = await createKeys(),
     response = await request<Types.FcmData>({
       url: FCM_SUBSCRIBE,
@@ -33,7 +33,7 @@ export default async function registerFCM(gcm: Types.GcmData, config: Types.Clie
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       data: (new URLSearchParams({
-        authorized_entity: config.senderId,
+        authorized_entity: senderId,
         endpoint: `${FCM_ENDPOINT}/${gcm.token}`,
         encryption_key: keys.publicKey
           .replace(/=/g, '')
@@ -44,7 +44,7 @@ export default async function registerFCM(gcm: Types.GcmData, config: Types.Clie
           .replace(/\+/g, '-')
           .replace(/\//g, '_')
       })).toString()
-    });
+    }, logger);
 
   return {
     gcm,

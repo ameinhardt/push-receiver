@@ -1,8 +1,6 @@
-import { randomUUID } from 'node:crypto';
 import Long from 'long';
 import * as Protos from './protos.js';
 import type * as Types from './types.js';
-import Logger from './utils/logger.js';
 import request from './utils/request.js';
 import delay from './utils/timeout.js';
 
@@ -27,7 +25,7 @@ function prepareCheckinBuffer(gcm?: Types.GcmData) {
   return AndroidCheckinRequest.encode(message).finish();
 }
 
-export async function checkIn(gcm?: Types.GcmData): Promise<Types.GcmData> {
+export async function checkIn(gcm?: Types.GcmData, logger? : Console): Promise<Types.GcmData> {
   const body = await request<ArrayBuffer>({
     url: CHECKIN_URL,
     method: 'POST',
@@ -36,7 +34,7 @@ export async function checkIn(gcm?: Types.GcmData): Promise<Types.GcmData> {
     },
     data: prepareCheckinBuffer(gcm),
     responseType: 'arraybuffer'
-  }),
+  }, logger),
 
     AndroidCheckinResponse = Protos.checkin_proto.AndroidCheckinResponse,
     message = AndroidCheckinResponse.decode(new Uint8Array(body)),
@@ -52,7 +50,7 @@ export async function checkIn(gcm?: Types.GcmData): Promise<Types.GcmData> {
   };
 }
 
-async function postRegister({ androidId, securityToken, body, retry = 0 }): Promise<string> {
+async function postRegister({ androidId, securityToken, body, retry = 0 }, logger? : Console): Promise<string> {
   const response = await request<string>({
     url: REGISTER_URL,
     method: 'POST',
@@ -64,28 +62,30 @@ async function postRegister({ androidId, securityToken, body, retry = 0 }): Prom
   });
 
   if (response.includes('Error')) {
-    Logger.warn(`Register request has failed with ${response}`);
+    logger?.warn?.(`Register request has failed with ${response}`);
     if (retry >= 5) {
       throw new Error('GCM register has failed');
     }
 
-    Logger.warn(`Retring... ${retry + 1}`);
+    logger?.warn?.(`Retring... ${retry + 1}`);
     await delay(1000);
-    return postRegister({ androidId, securityToken, body, retry: retry + 1 });
+    return postRegister({ androidId, securityToken, body, retry: retry + 1 }, logger);
   }
 
   return response;
 }
 
-async function doRegister({ androidId, securityToken }, config: Types.ClientConfig): Promise<Types.GcmData> {
-  const body = (new URLSearchParams({
-      app: config.bundleId ?? 'org.chromium.linux', // app package
-      'X-subtype': config.senderId,
+export default async (config: Types.ClientConfig, logger? : Console): Promise<Types.GcmData> => {
+  const { androidId, securityToken } = await checkIn(config.credentials?.gcm),
+    { bundleId, senderId, vapidKey } = config,
+    body = (new URLSearchParams({
+      app: bundleId ?? 'org.chromium.linux', // app package
+      'X-subtype': senderId,
       device: androidId,
-      sender: config.vapidKey
+      sender: vapidKey
     })).toString(),
 
-    response = await postRegister({ androidId, securityToken, body }),
+    response = await postRegister({ androidId, securityToken, body }, logger),
     token = response.split('=')[1];
 
   return {
@@ -93,10 +93,4 @@ async function doRegister({ androidId, securityToken }, config: Types.ClientConf
     androidId,
     securityToken
   };
-}
-
-export default async (config: Types.ClientConfig): Promise<Types.GcmData> => {
-  const options = await checkIn(config.credentials?.gcm),
-    credentials = await doRegister(options, config);
-  return credentials;
 };

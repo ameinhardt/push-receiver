@@ -1,9 +1,15 @@
 # @ameinhardt/push-receiver
 
+## 3.2.1
+
+### Minor Changes
+- configurable logger
+- removed unused type properties
 ## 3.2.0
 ### Minor Changes
 
 - using pnpm as package manager
+- changed to es6 modules
 - added rollup, also to workaround [protobuf.js#1657](https://github.com/protobufjs/protobuf.js/issues/1657)
 - removed unnecessary /proxy
 - removed unnecessary system (chrome*) details
