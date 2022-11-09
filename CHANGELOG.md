@@ -1,4 +1,22 @@
-# @eneris/push-receiver
+# @ameinhardt/push-receiver
+
+## 3.2.0
+### Minor Changes
+
+- using pnpm as package manager
+- added rollup, also to workaround [protobuf.js#1657](https://github.com/protobufjs/protobuf.js/issues/1657)
+- removed unnecessary /proxy
+- removed unnecessary system (chrome*) details
+- changed appId and bundleId in doRegister
+- enforced lint rules
+- removed code for sending from (push-receiver) client
+- added dotenv, persistentId and credential storage to example
+- added BSD license to LICENSE file
+
+### Patch Changes
+
+- Updated devDependencies
+
 
 ## 3.1.0
 

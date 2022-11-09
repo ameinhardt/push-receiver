@@ -1,6 +1,8 @@
+/* eslint-disable eslint-comments/disable-enable-pair, unicorn/prefer-module */
 /** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 
 module.exports = {
-    preset: 'ts-jest',
-    testEnvironment: 'node',
+  setupFiles: ['dotenv/config'],
+  preset: 'ts-jest',
+  testEnvironment: 'node'
 };

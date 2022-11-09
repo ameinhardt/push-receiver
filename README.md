@@ -1,6 +1,7 @@
 # push-receiver
 
 A library to subscribe to GCM/FCM and receive notifications within a node process.
+Initially created by [Matthieu Lemoine](https://github.com/MatthieuLemoine/push-receiver), improved by [Martin Kalábek](https://github.com/eneris/push-receiver). This for updates dependencies, adds a rollup bundle and improves the example.
 
 For [Electron](https://github.com/electron/electron), you can use [electron-push-receiver](https://github.com/MatthieuLemoine/electron-push-receiver) instead which provides a convenient wrapper.
 
@@ -18,9 +19,9 @@ See [this blog post](https://medium.com/@MatthieuLemoine/my-journey-to-bring-web
 
 ## Install
 
-`
+```
 npm i -S @eneris/push-receiver
-`
+```
 
 ## Requirements
 
@@ -39,8 +40,8 @@ interface ClientConfig {
     persistentIds?: PersistentId[] // Default - []
     senderId: string // Required
     bundleId?: string // Default - 'receiver.push.com'
-    chromeId?: string // Default - 'org.chromium.linux'
-    chromeVersion?: string // Default - '94.0.4606.51'
+    chromeId?: string
+    chromeVersion?: string
     skipFcmRegistration?: boolean // Default - false
     logLevel?: keyof typeof LogLevels // 'NONE'|'DEBUG'|'VERBOSE' - default: 'NONE'
     vapidKey?: string // Default - default firebase VAPID key
@@ -50,40 +51,4 @@ interface ClientConfig {
 
 ### Node example
 
-```javascript
-import PushReceiver from '@eneris/push-receiver'
-import { argv as parsedArgs } from 'yargs'
-
-if (!parsedArgs.senderId) {
-    console.error('Missing senderId')
-    return
-}
-
-(async () => {
-    const instance = new PushReceiver({
-        logLevel: parsedArgs.logLevel || 'DEBUG',
-        senderId: parsedArgs.senderId,
-        persistentIds: [], // Recover stored ids of all previous notifications
-    })
-
-    const stopListeningToCredentials = instance.onCredentialsChanged(({ oldCredentials, newCredentials }) => {
-        console.log('Client generated new credentials.', newCredentials)
-        // Save them somewhere! And decide if thing are needed to re-subscribe
-    })
-
-    const stopListeningToNotifications = instance.onNotification(({ notification }) => {
-        // Do someting with the notification
-        console.log('Notification received', notification)
-    })
-
-    await instance.connect()
-
-    if (parsedArgs.serverId) {
-        await instance.testMessage(parsedArgs.serverId)
-    }
-
-    stopListeningToCredentials()
-    stopListeningToNotifications()
-    instance.destroy()
-})()
-```
+See [example/index.js](example/index.js)

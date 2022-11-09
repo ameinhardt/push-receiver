@@ -1,17 +1,17 @@
 {
-    "compilerOptions": {
-        "rootDir": "src",
-        "declaration": true,
-        "outDir": "dist",
-        "module": "CommonJS",
-        "target": "ESNext",
-        "moduleResolution": "node",
-        "sourceMap": true,
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true
-    },
-    "exclude": [
-        "src/protos.d.ts",
-        "dist"
-    ]
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "Node",
+    "declaration": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "types": ["node"]
+    //, "allowSyntheticDefaultImports": true
+  },
+  "exclude": [
+    "dist"
+  ]
 }

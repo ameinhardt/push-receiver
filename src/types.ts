@@ -1,10 +1,4 @@
-import { LogLevels } from "./constants"
-
-export interface Credentials {
-    keys: Keys
-    gcm: GcmData
-    fcm: FcmData
-}
+import { LogLevels } from './constants.js';
 
 export interface Keys {
     privateKey: string
@@ -15,7 +9,6 @@ export interface Keys {
 export interface GcmData {
     androidId: string
     securityToken: string
-    appId?: string
     token?: string
 }
 
@@ -23,6 +16,11 @@ export interface GcmData {
 export type FcmData = {
     token: string
     pushSet: string
+}
+export interface Credentials {
+    keys: Keys
+    gcm: GcmData
+    fcm: FcmData
 }
 
 export type PersistentId = string
@@ -73,7 +71,7 @@ export interface MessageEnvelope {
     persistentId: string
 }
 
-export interface DataPacket<T = any> {
+export interface DataPacket<T = unknown> {
     tag: number
     object: T
 }
@@ -82,7 +80,7 @@ export interface ClientConfig {
     credentials?: Credentials
     persistentIds?: PersistentId[]
     senderId: string
-    bundleId?: string
+    bundleId: string
     chromeId?: string
     chromeVersion?: string
     skipFcmRegistration?: boolean

@@ -1,3 +1,4 @@
+/* eslint-disable eslint-comments/disable-enable-pair, no-shadow */
 export enum ProcessingState {
     // Processing the version, tag, and size packets (assuming minimum length
     // size packet). Only used during the login handshake.
@@ -9,25 +10,25 @@ export enum ProcessingState {
     MCS_SIZE                 = 2,
     // Processing the protocol buffer bytes (for those messages with non-zero
     // sizes).
-    MCS_PROTO_BYTES          = 3,
+    MCS_PROTO_BYTES          = 3
 }
 
 export enum Variables {
     // # of bytes a MCS version packet consumes.
-    kVersionPacketLen = 1,
+    kVersionPacketLength = 1,
     // # of bytes a tag packet consumes.
-    kTagPacketLen     = 1,
+    kTagPacketLength     = 1,
     // Max # of bytes a length packet consumes. A Varint32 can consume up to 5 bytes
     // (the msb in each byte is reserved for denoting whether more bytes follow).
     // Although the protocol only allows for 4KiB payloads currently, and the socket
     // stream buffer is only of size 8KiB, it's possible for certain applications to
     // have larger message sizes. When payload is larger than 4KiB, an temporary
     // in-memory buffer is used instead of the normal in-place socket stream buffer.
-    kSizePacketLenMin = 1,
-    kSizePacketLenMax = 5,
+    kSizePacketLengthMin = 1,
+    kSizePacketLengthMax = 5,
 
     // The current MCS protocol version.
-    kMCSVersion = 41,
+    kMCSVersion = 41
 }
 
 // MCS Message tags.
@@ -50,19 +51,20 @@ export enum MCSProtoTag {
     kBindAccountRequestTag  = 13,
     kBindAccountResponseTag = 14,
     kTalkMetadataTag        = 15,
-    kNumProtoTypes          = 16,
+    // eslint-disable-next-line unicorn/prevent-abbreviations
+    kNumProtoTypes          = 16
 }
 
 export enum GcmRequestConstants {
-    kErrorPrefix = "Error=",
-    kTokenPrefix = "token=",
-    kDeviceRegistrationError = "PHONE_REGISTRATION_ERROR",
-    kAuthenticationFailed = "AUTHENTICATION_FAILED",
-    kInvalidSender = "INVALID_SENDER",
-    kInvalidParameters = "INVALID_PARAMETERS",
-    kInternalServerError = "InternalServerError",
-    kQuotaExceeded = "QUOTA_EXCEEDED",
-    kTooManyRegistrations = "TOO_MANY_REGISTRATIONS",
+    kErrorPrefix = 'Error=',
+    kTokenPrefix = 'token=',
+    kDeviceRegistrationError = 'PHONE_REGISTRATION_ERROR',
+    kAuthenticationFailed = 'AUTHENTICATION_FAILED',
+    kInvalidSender = 'INVALID_SENDER',
+    kInvalidParameters = 'INVALID_PARAMETERS',
+    kInternalServerError = 'InternalServerError',
+    kQuotaExceeded = 'QUOTA_EXCEEDED',
+    kTooManyRegistrations = 'TOO_MANY_REGISTRATIONS'
 }
 
 // Taken from `registration_request.h` in Chromium project
