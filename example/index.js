@@ -3,8 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import url from 'node:url';
 import dotenv from 'dotenv';
-// eslint-disable-next-line import/namespace, import/default, import/no-named-as-default
-import PushReceiver from '../dist/client.js';
+import PushReceiver from '@ameinhardt/push-receiver';
 
 dotenv.config({
   path: '../.env'
@@ -45,7 +44,7 @@ const main = async () => {
     persistentIds = JSON.parse(await fs.readFile(PERSISTENTIDSFILE));
   } catch {}
   const instance = new PushReceiver({
-    bundleId: 'com.bosch.riot.applauth',
+    bundleId: 'com.example.bundle.id',
     credentials,
     senderId: SENDER_ID,
     heartbeatIntervalMs: 5 * 60 * 1000, // 5 min

@@ -7,10 +7,13 @@ const sourceMap = false;
 
 export default defineConfig({
   input: 'src/client.ts',
-  output: {
-    dir: 'dist',
-    format: 'module'
-  },
+  output: [{
+    file: 'dist/client.mjs',
+    format: 'es'
+  }, {
+    file: 'dist/client.cjs',
+    format: 'cjs'
+  }],
   external: [
     'protobufjs',
     'http_ece',

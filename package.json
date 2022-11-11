@@ -1,7 +1,7 @@
 {
   "name": "@ameinhardt/push-receiver",
   "type": "module",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "A module to subscribe to GCM/FCM and receive notifications within a node process.",
   "author": "Axel Meinhardt",
   "license": "MIT",
@@ -23,7 +23,11 @@
     "electron",
     "receiver"
   ],
-  "main": "dist/client.js",
+  "exports": {
+    "require": "./dist/client.cjs",
+    "default": "./dist/client.mjs"
+  },
+  "main": "dist/client.cjs",
   "types": "dist/client.d.ts",
   "files": [
     "dist/types.d.ts",

@@ -7,7 +7,7 @@ import delay from './utils/timeout.js';
 const REGISTER_URL = 'https://fcmtoken.googleapis.com/register', // 'https://android.clients.google.com/c2dm/register3',
   CHECKIN_URL = 'https://device-provisioning.googleapis.com/checkin'; // 'https://android.clients.google.com/checkin';
 
-function prepareCheckinBuffer(gcm?: Types.GcmData) {
+export async function checkIn(gcm?: Types.GcmData, logger? : Types.Logger): Promise<Pick<Types.GcmData, 'androidId' | 'securityToken'>> {
   const AndroidCheckinRequest = Protos.checkin_proto.AndroidCheckinRequest,
     payload = {
       userSerialNumber: 0,
@@ -21,20 +21,19 @@ function prepareCheckinBuffer(gcm?: Types.GcmData) {
     errorMessage = AndroidCheckinRequest.verify(payload);
   if (errorMessage) throw new Error(errorMessage);
 
-  const message = AndroidCheckinRequest.create(payload);
-  return AndroidCheckinRequest.encode(message).finish();
-}
+  const data = AndroidCheckinRequest.encode(
+      AndroidCheckinRequest.create(payload)
+    ).finish(),
 
-export async function checkIn(gcm?: Types.GcmData, logger? : Console): Promise<Types.GcmData> {
-  const body = await request<ArrayBuffer>({
-    url: CHECKIN_URL,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-protobuf'
-    },
-    data: prepareCheckinBuffer(gcm),
-    responseType: 'arraybuffer'
-  }, logger),
+    body = await request<ArrayBuffer>({
+      url: CHECKIN_URL,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-protobuf'
+      },
+      data,
+      responseType: 'arraybuffer'
+    }, logger),
 
     AndroidCheckinResponse = Protos.checkin_proto.AndroidCheckinResponse,
     message = AndroidCheckinResponse.decode(new Uint8Array(body)),
@@ -50,7 +49,7 @@ export async function checkIn(gcm?: Types.GcmData, logger? : Console): Promise<T
   };
 }
 
-async function postRegister({ androidId, securityToken, body, retry = 0 }, logger? : Console): Promise<string> {
+async function postRegister({ androidId, securityToken, body, retry = 0 }, logger? : Types.Logger): Promise<string> {
   const response = await request<string>({
     url: REGISTER_URL,
     method: 'POST',
@@ -75,9 +74,9 @@ async function postRegister({ androidId, securityToken, body, retry = 0 }, logge
   return response;
 }
 
-export default async (config: Types.ClientConfig, logger? : Console): Promise<Types.GcmData> => {
-  const { androidId, securityToken } = await checkIn(config.credentials?.gcm),
-    { bundleId, senderId, vapidKey } = config,
+export default async (gcmConfig: Types.GcmConfig, logger?: Types.Logger): Promise<Types.GcmData> => {
+  const { bundleId, credentials, senderId, vapidKey } = gcmConfig,
+    { androidId, securityToken } = await checkIn(credentials?.gcm),
     body = (new URLSearchParams({
       app: bundleId ?? 'org.chromium.linux', // app package
       'X-subtype': senderId,
@@ -87,6 +86,7 @@ export default async (config: Types.ClientConfig, logger? : Console): Promise<Ty
 
     response = await postRegister({ androidId, securityToken, body }, logger),
     token = response.split('=')[1];
+  logger?.debug?.('gcm registration response', response);
 
   return {
     token,

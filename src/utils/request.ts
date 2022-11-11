@@ -1,4 +1,5 @@
 import axios, { AxiosRequestConfig } from 'axios';
+import { Logger } from '../types';
 import delay from './timeout.js';
 
 // In seconds
@@ -7,7 +8,7 @@ const MAX_RETRY_TIMEOUT = 15,
   // Step in seconds
   RETRY_STEP = 5;
 
-async function retry<T>(retryCount = 0, options: AxiosRequestConfig, logger? : Console): Promise<T> {
+async function retry<T>(retryCount = 0, options: AxiosRequestConfig, logger?: Logger): Promise<T> {
   try {
     const response = await axios<T>(options);
     return response.data;
@@ -24,6 +25,6 @@ async function retry<T>(retryCount = 0, options: AxiosRequestConfig, logger? : C
   }
 }
 
-export default function requestWithRety<T>(options: AxiosRequestConfig, logger? : Console): Promise<T> {
+export default function requestWithRety<T>(options: AxiosRequestConfig, logger?: Logger): Promise<T> {
   return retry<T>(0, options, logger);
 }

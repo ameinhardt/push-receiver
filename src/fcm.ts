@@ -24,7 +24,7 @@ function createKeys(): Promise<Types.Keys> {
   });
 }
 
-export default async function registerFCM(gcm: Types.GcmData, senderId: string, logger? : Console): Promise<Types.Credentials> {
+export default async function registerFCM(gcm: Types.GcmData, senderId: string, logger?: Types.Logger): Promise<Types.Credentials> {
   const keys = await createKeys(),
     response = await request<Types.FcmData>({
       url: FCM_SUBSCRIBE,

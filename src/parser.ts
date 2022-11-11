@@ -7,6 +7,7 @@ import {
   MCSProtoTag
 } from './constants.js';
 import * as Protos from './protos.js';
+import { Logger } from './types';
 
 // Parser parses wire data from gcm.
 // This takes the role of WaitForData in the chromium connection handler.
@@ -20,7 +21,7 @@ import * as Protos from './protos.js';
 // ref: https://cs.chromium.org/chromium/src/google_apis/gcm/engine/connection_handler_impl.cc?rcl=dc7c41bc0ee5fee0ed269495dde6b8c40df43e40&l=178
 export default class Parser extends EventEmitter {
   private socket: TLSSocket;
-  private logger: Console;
+  private logger: Logger;
   private state: ProcessingState = ProcessingState.MCS_VERSION_TAG_AND_SIZE;
   private data: Buffer = Buffer.alloc(0);
   private messageTag = 0;
@@ -28,7 +29,7 @@ export default class Parser extends EventEmitter {
   private handshakeComplete = false;
   private isWaitingForData = true;
 
-  constructor(socket: TLSSocket, logger? : Console) {
+  constructor(socket: TLSSocket, logger?: Logger) {
     super();
     this.logger = logger;
     this.socket = socket;
