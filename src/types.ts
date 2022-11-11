@@ -83,7 +83,7 @@ export interface GcmConfig {
 }
 
 export interface ClientConfig extends GcmConfig {
-  persistentIds?: PersistentId[];
+  persistentIds: PersistentId[];
   heartbeatIntervalMs?: number
 }
 
