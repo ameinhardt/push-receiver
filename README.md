@@ -20,7 +20,7 @@ See [this blog post](https://medium.com/@MatthieuLemoine/my-journey-to-bring-web
 ## Install
 
 ```
-npm i -S @eneris/push-receiver
+npm i -S @ameinhardt/push-receiver
 ```
 
 ## Requirements

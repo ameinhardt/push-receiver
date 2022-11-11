@@ -20,7 +20,7 @@ const HOST = 'mtalk.google.com',
   MAX_RETRY_TIMEOUT = 15;
 
 export default class PushReceiver extends EventEmitter {
-  private config: Types.GcmConfig;
+  private config: Types.ClientConfig;
   private socket: tls.TLSSocket;
   private logger: Types.Logger;
   private retryCount = 0;
@@ -31,22 +31,9 @@ export default class PushReceiver extends EventEmitter {
   private streamId = 0;
   private lastStreamIdReported = -1;
 
-  private heartbeatIntervalMs: number;
-  public persistentIds: Types.PersistentId[];
-
   constructor(config: Types.ClientConfig, logger?: Types.Logger) {
     super();
-    const {
-      bundleId,
-      credentials,
-      senderId,
-      persistentIds = [],
-      heartbeatIntervalMs = 5 * 60 * 1000,
-      vapidKey = 'BDOU99-h67HcA6JeFXHbSNMu7e2yNNu3RzoMj8TM4W88jITfq7ZmPvIM1Iv-4_l2LxQcYwhqby2xGpWwzjfAnG4' // This is default Firebase VAPID key
-    } = config;
-    this.config = { bundleId, credentials, senderId, vapidKey };
-    this.persistentIds = persistentIds;
-    this.heartbeatIntervalMs = heartbeatIntervalMs;
+    this.config = config;
     this.logger = logger;
   }
 
@@ -88,10 +75,10 @@ export default class PushReceiver extends EventEmitter {
     }
 
     if (this.config.credentials) {
-      this.logger.debug('connect(): credentials given, checking in');
+      this.logger?.debug?.('connect(): credentials given, checking in');
       await this.checkIn();
     } else {
-      this.logger.debug('connect(): registering new credentials');
+      this.logger?.debug?.('connect(): registering new credentials');
       const oldCredentials = this.config.credentials,
         newCredentials = await this.register();
       this.emit('ON_CREDENTIALS_CHANGE', { oldCredentials, newCredentials });
@@ -137,8 +124,19 @@ export default class PushReceiver extends EventEmitter {
   };
 
   public async register(): Promise<Types.Credentials> {
-    const subscription = await registerGCM(this.config, this.logger);
-    return registerFCM(subscription, this.config.senderId, this.logger);
+    const {
+        bundleId,
+        credentials,
+        senderId,
+        vapidKey = 'BDOU99-h67HcA6JeFXHbSNMu7e2yNNu3RzoMj8TM4W88jITfq7ZmPvIM1Iv-4_l2LxQcYwhqby2xGpWwzjfAnG4'
+      } = this.config,
+      subscription = await registerGCM({
+        bundleId,
+        credentials,
+        senderId,
+        vapidKey
+      }, this.logger);
+    return registerFCM(subscription, senderId, this.logger);
   }
 
   public checkIn(): Promise<Types.GcmData> {
@@ -156,10 +154,10 @@ export default class PushReceiver extends EventEmitter {
   private startHeartbeat() {
     this.clearHeartbeat();
 
-    if (!this.heartbeatIntervalMs) return;
+    if (!this.config.heartbeatIntervalMs) return;
 
-    this.heartbeatTimer = setTimeout(this.sendHeartbeatPing.bind(this), this.heartbeatIntervalMs);
-    this.heartbeatTimeout = setTimeout(this.socketRetry.bind(this), this.heartbeatIntervalMs * 2);
+    this.heartbeatTimer = setTimeout(this.sendHeartbeatPing.bind(this), this.config.heartbeatIntervalMs);
+    this.heartbeatTimeout = setTimeout(this.socketRetry.bind(this), this.config.heartbeatIntervalMs * 2);
   }
 
   private handleSocketConnect = (): void => {
@@ -260,14 +258,14 @@ export default class PushReceiver extends EventEmitter {
         setting: [{ name: 'new_vc', value: '1' }],
         clientEvent: [],
         // Id of the last notification received
-        receivedPersistentId: this.persistentIds
+        receivedPersistentId: this.config.persistentIds
       };
 
-    if (this.heartbeatIntervalMs) {
+    if (this.config.heartbeatIntervalMs) {
       loginRequest.heartbeatStat = {
         ip: '',
         timeout: true,
-        intervalMs: this.heartbeatIntervalMs
+        intervalMs: this.config.heartbeatIntervalMs
       };
     }
 
@@ -293,7 +291,7 @@ export default class PushReceiver extends EventEmitter {
       case MCSProtoTag.kLoginResponseTag: {
         this.logger?.info?.('received login response', object);
         // clear persistent ids, as we just sent them to the server while logging in
-        this.persistentIds.splice(0, this.persistentIds.length);
+        this.config.persistentIds.splice(0, this.config.persistentIds.length);
         this.emit('ON_READY');
         this.startHeartbeat();
         break;
@@ -348,7 +346,7 @@ export default class PushReceiver extends EventEmitter {
   };
 
   private handleDataMessage = (object): void => {
-    if (this.persistentIds.includes(object.persistentId)) {
+    if (this.config.persistentIds.includes(object.persistentId)) {
       return;
     }
 
@@ -374,7 +372,7 @@ export default class PushReceiver extends EventEmitter {
     }
 
     // Maintain persistentIds updated with the very last received value
-    this.persistentIds.push(object.persistentId);
+    this.config.persistentIds.push(object.persistentId);
     // Send notification
     this.emit('ON_MESSAGE_RECEIVED', {
       message,

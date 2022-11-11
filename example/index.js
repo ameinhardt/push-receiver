@@ -12,9 +12,14 @@ dotenv.config({
 const SENDER_ID = process.env.SENDER_ID,
   SERVER_KEY = process.env.SERVER_KEY,
   CREDENTIALFILE = path.join(path.dirname(url.fileURLToPath(import.meta.url)), './credentials.json'),
-  PERSISTENTIDSFILE = path.join(path.dirname(url.fileURLToPath(import.meta.url)), './persistentIds.json');
-
-let credentials;
+  PERSISTENTIDSFILE = path.join(path.dirname(url.fileURLToPath(import.meta.url)), './persistentIds.json'),
+  config = {
+    bundleId: 'com.example.bundle.id',
+    credentials: undefined,
+    senderId: SENDER_ID,
+    heartbeatIntervalMs: 5 * 60 * 1000, // 5 min
+    persistentIds: []
+  };
 
 async function onMessageReceived({ message }) {
   console.log('Message received', message);
@@ -22,8 +27,7 @@ async function onMessageReceived({ message }) {
 
 async function onCredentialsChanged({ oldCredentials, newCredentials }) {
   console.log('Client generated new credentials');
-  credentials = newCredentials;
-  await fs.writeFile(CREDENTIALFILE, JSON.stringify(credentials));
+  await fs.writeFile(CREDENTIALFILE, JSON.stringify(newCredentials));
   console.log('saved in ./credentials.json');
 }
 
@@ -38,26 +42,18 @@ if (!SENDER_ID) {
 }
 
 const main = async () => {
-  let persistentIds = [];
   try {
-    credentials = JSON.parse(await fs.readFile(CREDENTIALFILE));
-    persistentIds = JSON.parse(await fs.readFile(PERSISTENTIDSFILE));
+    config.credentials = JSON.parse(await fs.readFile(CREDENTIALFILE));
+    config.persistentIds = JSON.parse(await fs.readFile(PERSISTENTIDSFILE));
   } catch {}
-  const instance = new PushReceiver({
-    bundleId: 'com.example.bundle.id',
-    credentials,
-    senderId: SENDER_ID,
-    heartbeatIntervalMs: 5 * 60 * 1000, // 5 min
-    persistentIds
-  }, {
+  const instance = new PushReceiver(config, {
     // info: console.info,
     warn: console.warn,
     error: console.error
-  });
-
-  instance.on('ON_MESSAGE_RECEIVED', onMessageReceived);
-  instance.on('ON_CREDENTIALS_CHANGE', onCredentialsChanged);
-  instance.on('ON_HEARTBEAT', onHeartbeat);
+  })
+    .on('ON_MESSAGE_RECEIVED', onMessageReceived)
+    .on('ON_CREDENTIALS_CHANGE', onCredentialsChanged)
+    .on('ON_HEARTBEAT', onHeartbeat);
 
   await instance.connect();
   console.log('connected. Waiting for messages...');
@@ -72,11 +68,12 @@ const main = async () => {
   }
   for (const signal of ['SIGINT', 'SIGTERM']) {
     process.once(signal, async () => {
-      instance.off('ON_HEARTBEAT', onHeartbeat);
-      instance.off('ON_CREDENTIALS_CHANGE', onCredentialsChanged);
-      instance.off('ON_MESSAGE_RECEIVED', onMessageReceived);
-      await fs.writeFile(PERSISTENTIDSFILE, JSON.stringify(instance.persistentIds));
-      instance.destroy();
+      await fs.writeFile(PERSISTENTIDSFILE, JSON.stringify(config.persistentIds));
+      instance
+        .off('ON_HEARTBEAT', onHeartbeat)
+        .off('ON_CREDENTIALS_CHANGE', onCredentialsChanged)
+        .off('ON_MESSAGE_RECEIVED', onMessageReceived)
+        .destroy();
       process.exit();
     });
   }
