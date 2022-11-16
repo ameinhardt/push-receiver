@@ -1,7 +1,7 @@
 {
   "name": "@ameinhardt/push-receiver",
   "type": "module",
-  "version": "3.2.2",
+  "version": "3.2.3",
   "description": "A module to subscribe to GCM/FCM and receive notifications within a node process.",
   "author": "Axel Meinhardt",
   "license": "MIT",
@@ -44,7 +44,6 @@
     "protos:convert": "mkdir -p dist && pbjs -t static-module --force-long --wrap es6 -o ./src/protos.js ./src/protos/*.proto",
     "protos:dev": "pbts -o ./src/protos.d.ts ./src/protos.js",
     "build": "pnpm protos:convert && pnpm protos:dev && rollup -c",
-    "dev": "pnpm protos:convert && pnpm protos:dev && tsc -p .",
     "prepublish": "pnpm build",
     "test": "jest",
     "lint": "eslint src --ext .ts",

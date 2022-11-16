@@ -3,7 +3,7 @@ import type * as Types from './types.js';
 import { escape } from './utils/base64.js';
 import request from './utils/request.js';
 
-const FCM_SUBSCRIBE = 'https://fcm.googleapis.com/fcm/connect/subscribe',
+const FCM_CONNECT_BASE = 'https://fcm.googleapis.com/fcm/connect',
   FCM_ENDPOINT = 'https://fcm.googleapis.com/fcm/send';
 
 function createKeys(): Promise<Types.Keys> {
@@ -24,17 +24,19 @@ function createKeys(): Promise<Types.Keys> {
   });
 }
 
-export default async function registerFCM(gcm: Types.GcmData, senderId: string, logger?: Types.Logger): Promise<Types.Credentials> {
+// this is the old API version https://github.com/firebase/firebase-js-sdk/blob/8d1f1bf8276d3ff88b21ea08279f5404079a8770/packages/messaging/src/models/iid-model.ts#L39
+// TODO: update to new API version (with https://fcmregistrations.googleapis.com/v1/projects/${projectId}/registrations), see https://github.com/firebase/firebase-js-sdk/blob/d87d3a8b8cd68e757be6628a72538bfd303e78d1/packages/messaging/src/internals/requests.ts#L39
+export default async function getToken(subscription: Types.GcmData, senderId: string, logger?: Types.Logger): Promise<Types.Credentials> {
   const keys = await createKeys(),
     response = await request<Types.FcmData>({
-      url: FCM_SUBSCRIBE,
+      url: `${FCM_CONNECT_BASE}/subscribe`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       data: (new URLSearchParams({
         authorized_entity: senderId,
-        endpoint: `${FCM_ENDPOINT}/${gcm.token}`,
+        endpoint: `${FCM_ENDPOINT}/${subscription.token}`,
         encryption_key: keys.publicKey
           .replace(/=/g, '')
           .replace(/\+/g, '-')
@@ -47,8 +49,26 @@ export default async function registerFCM(gcm: Types.GcmData, senderId: string, 
     }, logger);
 
   return {
-    gcm,
+    gcm: subscription,
     keys,
     fcm: response
   };
 }
+
+// Deletes the registration token and unsubscribes instance from the push subscription
+async function deleteToken(subscription: Types.FcmData, senderId: string, logger?: Types.Logger) {
+  await request<Types.FcmData>({
+    url: `${FCM_CONNECT_BASE}/unsubscribe`,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    data: (new URLSearchParams({
+      authorized_entity: senderId,
+      token: subscription.token,
+      pushSet: subscription.pushSet
+    })).toString()
+  }, logger);
+}
+
+export { getToken, deleteToken };

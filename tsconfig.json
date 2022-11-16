@@ -11,6 +11,7 @@
     "types": ["node"]
     //, "allowSyntheticDefaultImports": true
   },
+  "include": ["./src", "./example"],
   "exclude": [
     "dist"
   ]

@@ -1,5 +1,7 @@
 # @ameinhardt/push-receiver
 
+## 3.2.3
+- add gcm/fcm unregister option to client destroy
 ## 3.2.2
 ### Minor Changes
 - allow cjs and es6 imports with different builds

@@ -4,8 +4,8 @@ import tls from 'node:tls';
 import Long from 'long';
 import ProtobufJS from 'protobufjs';
 import { Variables, MCSProtoTag } from './constants.js';
-import registerFCM from './fcm.js';
-import registerGCM, { checkIn } from './gcm.js';
+import { getToken as getFCMToken, deleteToken as deleteFCMToken } from './fcm.js';
+import { checkIn, register as registerGCM, unregister as unregisterGCM } from './gcm.js';
 import Parser from './parser.js';
 import * as Protos from './protos.js';
 import type { mcs_proto } from './protos.js';
@@ -68,20 +68,23 @@ export default class PushReceiver extends EventEmitter {
     return Reflect.apply(EventEmitter.prototype.emit, this, [event, ...arguments_]);
   }
 
-  public connect = async (): Promise<void> => {
+  public async connect(): Promise<void> {
     if (this.socket) {
       this.logger?.debug?.('connect(): socket already exists');
       return;
     }
-
+    if (this.retryTimeout != null) {
+      clearTimeout(this.retryTimeout);
+      this.retryTimeout = undefined;
+    }
     if (this.config.credentials) {
       this.logger?.debug?.('connect(): credentials given, checking in');
+      // is it necessary to checkin, as we have gcn credentials already?
       await this.checkIn();
     } else {
       this.logger?.debug?.('connect(): registering new credentials');
-      const oldCredentials = this.config.credentials,
-        newCredentials = await this.register();
-      this.emit('ON_CREDENTIALS_CHANGE', { oldCredentials, newCredentials });
+      const newCredentials = await this.register();
+      this.emit('ON_CREDENTIALS_CHANGE', { oldCredentials: undefined, newCredentials });
       this.config.credentials = newCredentials;
     }
 
@@ -104,11 +107,20 @@ export default class PushReceiver extends EventEmitter {
     return new Promise((resolve) => {
       this.once('ON_READY', () => resolve());
     });
-  };
+  }
 
-  public destroy = () => {
-    clearTimeout(this.retryTimeout);
+  public async destroy(unregister = true) : Promise<void> {
+    if (this.retryTimeout != null) {
+      clearTimeout(this.retryTimeout);
+      this.retryTimeout = undefined;
+    }
 
+    if (unregister && this.config.credentials?.gcm) {
+      await deleteFCMToken(this.config.credentials.fcm, this.config.senderId, this.logger);
+      await unregisterGCM(this.config.credentials.gcm, this.config.bundleId, this.logger);
+      this.config.persistentIds.splice(0, this.config.persistentIds.length);
+      this.emit('ON_CREDENTIALS_CHANGE', { oldCredentials: this.config.credentials, newCredentials: undefined });
+    }
     if (this.parser) {
       this.parser.off('error', this.handleParserError);
       this.parser.destroy();
@@ -121,7 +133,7 @@ export default class PushReceiver extends EventEmitter {
       this.socket.destroy();
       this.socket = null;
     }
-  };
+  }
 
   public async register(): Promise<Types.Credentials> {
     const {
@@ -136,7 +148,7 @@ export default class PushReceiver extends EventEmitter {
         senderId,
         vapidKey
       }, this.logger);
-    return registerFCM(subscription, senderId, this.logger);
+    return getFCMToken(subscription, senderId, this.logger);
   }
 
   public checkIn(): Promise<Types.GcmData> {
@@ -178,7 +190,10 @@ export default class PushReceiver extends EventEmitter {
   };
 
   private socketRetry() {
-    this.destroy();
+    if (this.retryTimeout) { // retry scheduled already
+      return;
+    }
+    this.destroy(false);
     const timeout = Math.min(++this.retryCount, MAX_RETRY_TIMEOUT) * 1000;
     this.retryTimeout = setTimeout(this.connect, timeout);
   }
@@ -293,7 +308,6 @@ export default class PushReceiver extends EventEmitter {
         // clear persistent ids, as we just sent them to the server while logging in
         this.config.persistentIds.splice(0, this.config.persistentIds.length);
         this.emit('ON_READY');
-        this.startHeartbeat();
         break;
       }
 

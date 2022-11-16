@@ -26,9 +26,13 @@ async function onMessageReceived({ message }) {
 }
 
 async function onCredentialsChanged({ oldCredentials, newCredentials }) {
-  console.log('Client generated new credentials');
-  await fs.writeFile(CREDENTIALFILE, JSON.stringify(newCredentials));
-  console.log('saved in ./credentials.json');
+  console.log('Client updated credentials');
+  if (newCredentials) {
+    await fs.writeFile(CREDENTIALFILE, JSON.stringify(newCredentials));
+  } else {
+    fs.unlink(CREDENTIALFILE);
+  }
+  console.log('updated ./credentials.json');
 }
 
 function onHeartbeat() {
@@ -47,7 +51,7 @@ const main = async () => {
     config.persistentIds = JSON.parse(await fs.readFile(PERSISTENTIDSFILE));
   } catch {}
   const instance = new PushReceiver(config, {
-    // info: console.info,
+    info: console.info,
     warn: console.warn,
     error: console.error
   })
@@ -66,7 +70,7 @@ const main = async () => {
       action: ''
     }, SERVER_KEY);
   }
-  for (const signal of ['SIGINT', 'SIGTERM']) {
+  for (const signal of ['exit', 'SIGINT', 'SIGTERM']) {
     process.once(signal, async () => {
       await fs.writeFile(PERSISTENTIDSFILE, JSON.stringify(config.persistentIds));
       instance
@@ -77,6 +81,13 @@ const main = async () => {
       process.exit();
     });
   }
+  setTimeout(async () => {
+    console.log('destroying connection...');
+    await instance.destroy();
+    console.log('destroyed, bye');
+    // eslint-disable-next-line unicorn/no-process-exit
+    process.exit(0);
+  }, 10 * 1000);
 };
 
 main();
