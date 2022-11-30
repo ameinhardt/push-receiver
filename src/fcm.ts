@@ -28,7 +28,7 @@ function createKeys(): Promise<Types.Keys> {
 // TODO: update to new API version (with https://fcmregistrations.googleapis.com/v1/projects/${projectId}/registrations), see https://github.com/firebase/firebase-js-sdk/blob/d87d3a8b8cd68e757be6628a72538bfd303e78d1/packages/messaging/src/internals/requests.ts#L39
 export default async function getToken(subscription: Types.GcmData, senderId: string, logger?: Types.Logger): Promise<Types.Credentials> {
   const keys = await createKeys(),
-    response = await request<Types.FcmData>({
+    response = await request({
       url: `${FCM_CONNECT_BASE}/subscribe`,
       method: 'POST',
       headers: {
@@ -51,13 +51,13 @@ export default async function getToken(subscription: Types.GcmData, senderId: st
   return {
     gcm: subscription,
     keys,
-    fcm: response
+    fcm: JSON.parse(response.toString()) as Types.FcmData
   };
 }
 
 // Deletes the registration token and unsubscribes instance from the push subscription
 async function deleteToken(subscription: Types.FcmData, senderId: string, logger?: Types.Logger) {
-  await request<Types.FcmData>({
+  await request({
     url: `${FCM_CONNECT_BASE}/unsubscribe`,
     method: 'POST',
     headers: {

@@ -1,7 +1,14 @@
 # @ameinhardt/push-receiver
 
+## 3.2.4
+### Minor Changes
+- remove axios
+- update dependencies
+
 ## 3.2.3
+### Minor Changes
 - add gcm/fcm unregister option to client destroy
+
 ## 3.2.2
 ### Minor Changes
 - allow cjs and es6 imports with different builds

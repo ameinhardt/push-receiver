@@ -17,7 +17,6 @@ export default defineConfig({
   external: [
     'protobufjs',
     'http_ece',
-    'axios',
     'long',
     'protobufjs/minimal.js',
     ...builtinModules.flatMap(p => [p, `node:${p}`])

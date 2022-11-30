@@ -50,7 +50,9 @@ const main = async () => {
     config.credentials = JSON.parse(await fs.readFile(CREDENTIALFILE));
     config.persistentIds = JSON.parse(await fs.readFile(PERSISTENTIDSFILE));
   } catch {}
+  console.log(config);
   const instance = new PushReceiver(config, {
+    debug: console.debug,
     info: console.info,
     warn: console.warn,
     error: console.error
@@ -81,13 +83,13 @@ const main = async () => {
       process.exit();
     });
   }
-  setTimeout(async () => {
+  /* setTimeout(async () => {
     console.log('destroying connection...');
     await instance.destroy();
     console.log('destroyed, bye');
     // eslint-disable-next-line unicorn/no-process-exit
     process.exit(0);
-  }, 10 * 1000);
+  }, 10 * 1000); */
 };
 
 main();

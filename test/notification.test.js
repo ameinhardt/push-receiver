@@ -1,5 +1,6 @@
-import axios from 'axios';
-// eslint-disable-next-line import/namespace, import/default, import/no-named-as-default
+
+import { rejects } from 'node:assert';
+import https from 'node:https';
 import Client from '../dist/client.js';
 import FourK from './4kb';
 
@@ -21,20 +22,23 @@ const NOTIFICATIONS = {
     heartbeatIntervalMs: 10_000
   }, console);
 
-async function send(message) {
-  const { data } = await axios.post(FCM_SEND_API, {
-    time_to_live: 3,
-    data: message,
-    registration_ids: [client.config.credentials.fcm.token] // send to self
-  }, {
-    headers: {
-      Authorization: `key=${SERVER_KEY}`
-    }
-  });
-  if (data.failure) {
-    throw new Error(data);
-  }
-  return data;
+function send(message) {
+  return new Promise((resolve, reject) =>
+    https
+      .request(FCM_SEND_API, {
+        method: 'POST',
+        headers: {
+          Authorization: `key=${SERVER_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      .end(JSON.stringify({
+        time_to_live: 3,
+        data: message,
+        registration_ids: [client.config.credentials.fcm.token] // send to self
+      }))
+      .on('error', error => reject(error))
+  );
 }
 
 async function receive(n) {

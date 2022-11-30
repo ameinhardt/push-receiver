@@ -26,18 +26,17 @@ async function checkIn(gcm?: Types.GcmData, logger? : Types.Logger): Promise<Pic
       AndroidCheckinRequest.create(payload)
     ).finish(),
 
-    body = await request<ArrayBuffer>({
+    body = await request({
       url: CHECKIN_URL,
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-protobuf'
       },
-      data,
-      responseType: 'arraybuffer'
+      data
     }, logger),
 
     AndroidCheckinResponse = Protos.checkin_proto.AndroidCheckinResponse,
-    message = AndroidCheckinResponse.decode(new Uint8Array(body)),
+    message = AndroidCheckinResponse.decode(new Uint8Array(body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength))),
     object = AndroidCheckinResponse.toObject(message, {
       longs: String,
       enums: String,
@@ -51,15 +50,16 @@ async function checkIn(gcm?: Types.GcmData, logger? : Types.Logger): Promise<Pic
 }
 
 async function postRegister({ androidId, securityToken, body, retry = 0 }, logger? : Types.Logger): Promise<string> {
-  const response = await request<string>({
-    url: REGISTER_URL,
-    method: 'POST',
-    headers: {
-      Authorization: `AidLogin ${androidId}:${securityToken}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    data: body
-  });
+  const rawResponse = await request({
+      url: REGISTER_URL,
+      method: 'POST',
+      headers: {
+        Authorization: `AidLogin ${androidId}:${securityToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      data: body
+    }),
+    response = rawResponse.toString();
 
   if (response.includes('Error')) {
     logger?.warn?.(`Register request has failed with ${response}`);

@@ -301,7 +301,6 @@ export default class PushReceiver extends EventEmitter {
   private handleMessage = ({ tag, object }: Types.DataPacket): void => {
     // any message will reset the client side heartbeat timeout.
     this.startHeartbeat();
-
     switch (tag) {
       case MCSProtoTag.kLoginResponseTag: {
         this.logger?.info?.('received login response', object);
